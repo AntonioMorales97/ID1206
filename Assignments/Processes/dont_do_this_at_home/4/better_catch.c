@@ -14,11 +14,6 @@ void handler(int sig, siginfo_t *siginfo, void *context){
   done = 1;
 }
 
-int not_so_good(){
-  int x = 0;
-  return 1 % x;
-}
-
 int main(){
   struct sigaction sa;
 
