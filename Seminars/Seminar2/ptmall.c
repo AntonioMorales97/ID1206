@@ -196,12 +196,15 @@ struct head *merge_no_detach(struct head *block){
     struct head *bef = before(block);
     bef->size = bef->size + block->size + HEAD;
     aft->bsize = bef->size;
-    aft->bfree = bef->free; //TRUE;
+    aft->bfree = bef->free;
     block = bef;
 
     if(aft->free){
       block->size = block->size + aft->size + HEAD;
       detach(aft);
+      if(flist == NULL){
+        flist = block;
+      }
       aft = after(aft);
       aft->bsize = block->size;
       aft->bfree = block->free;
@@ -209,17 +212,20 @@ struct head *merge_no_detach(struct head *block){
 
     return NULL;
   }
-  //only after is free
+  //only block after is free
   if(aft->free){
     block->next = aft->next;
     block->prev = aft->prev;
-    struct head *prev = aft->prev;
-    struct head *next = aft->next;
-    if(prev != NULL){
-      prev->next = block;
+    struct head *aftprev = aft->prev;
+    struct head *aftnext = aft->next;
+    if(aftprev != NULL){
+      aftprev->next = block;
     }
-    if(next != NULL){
-      next->prev = block;
+    if(aftnext != NULL){
+      aftnext->prev = block;
+    }
+    if(aft == flist){
+      flist = block;
     }
     block->size = block->size + aft->size + HEAD;
     block->free = TRUE;
@@ -248,9 +254,10 @@ void *palloc(size_t request){
 void pree(void *memory){
   if(memory != NULL){
     struct head *block = MAGIC(memory);//(struct head*)((char *) memory - HEAD);
-    block = merge(block);//merge_no_detach(block);//merge(block);
+    block = merge_no_detach(block);//merge(block);
 
-    /*
+    //sink/heap??? change insert also, split will be fixed:)
+
     if(block == NULL){
       //merged into flist already
     } else {
@@ -259,13 +266,13 @@ void pree(void *memory){
       aft->bfree = TRUE;
       insert(block);
     }
-    */
 
+    /*
     struct head *aft = after(block);
     block->free = TRUE;
     aft->bfree = TRUE;
     insert(block);
-
+    */
   }
 }
 

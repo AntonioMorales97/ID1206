@@ -84,8 +84,8 @@ int main(int argc, char const *argv[]){
   MAX_REQUEST_SIZE = atoi(argv[3]);
   srand(time(0));
   //evalFlistLength();
-  //evalFlistDistr();
-  testSanity();
+  evalFlistDistr();
+  //testSanity();
   /*
   init();
   test();
