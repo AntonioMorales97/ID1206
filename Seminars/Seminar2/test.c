@@ -8,7 +8,10 @@ int allocs; // number of blocks requested
 int buffer; //how many blocks we can hold at a given time
 int maxReqSize; // max block size request
 
-void test(int bufferSize){
+/**
+* Will palloc/pree simulating a real program
+*/
+void testAlloc(int bufferSize){
   void *buffer[bufferSize];
   for(int i = 0; i < bufferSize; i++){
     buffer[i] = NULL;
@@ -38,12 +41,12 @@ void evalFlistLength(){
   printf("# Checking length of flist\n# BufferSize\tflistLength\n");
   for(int i = 10; i < buffer; i+= 10){
     init();
-    test(i);
+    testAlloc(i);
     printCountLengthOfFlist(i);
     terminate();
   }
   init();
-  test(buffer);
+  testAlloc(buffer);
   printCountLengthOfFlist(buffer);
   terminate();
 }
@@ -51,14 +54,36 @@ void evalFlistLength(){
 void evalFlistDistr(){
   printf("# Checking distribution of the block sizes in flist\n");
   init();
-  test(buffer);
+  testAlloc(buffer);
   printSizeDistributionOfFlist(buffer);
   terminate();
 }
 
+void evalTimePerformance(){
+  printf("# Evaluation of time performance\n# BufferSize\tTime(ms)\n");
+  clock_t time_start, time_stop;
+  double timeAlloc = 0;
+  for(int i = 10; i < buffer; i+= 10){
+    init();
+    time_start = clock();
+    testAlloc(i);
+    time_stop = clock();
+    terminate();
+    timeAlloc = ((double)(time_stop - time_start)) / ((double)CLOCKS_PER_SEC/1000);
+    printf("%d\t%f\n", i, timeAlloc);
+  }
+  init();
+  time_start = clock();
+  testAlloc(buffer);
+  time_stop = clock();
+  terminate();
+  timeAlloc = ((double)(time_stop - time_start)) / ((double)CLOCKS_PER_SEC/1000);
+  printf("%d\t%f\n", buffer, timeAlloc);
+}
+
 void testSanity(){
   init();
-  test(buffer);
+  testAlloc(buffer);
   sanity();
   terminate();
 }
@@ -74,6 +99,7 @@ int main(int argc, char const *argv[]){
   srand(time(0));
   //evalFlistLength();
   //evalFlistDistr();
-  testSanity();
+  evalTimePerformance();
+  //testSanity();
   return 0;
 }
