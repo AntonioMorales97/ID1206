@@ -54,6 +54,10 @@ struct head *before(struct head *block){
   return (struct head*)((char *) block - block->bsize - HEAD);
 }
 
+/**
+* Splits the block and returns the splitted
+* block with the size that was requested.
+*/
 struct head *split(struct head *block, int size){
   int rsize = block->size - size - HEAD;
   block->size = rsize;
@@ -70,8 +74,9 @@ struct head *split(struct head *block, int size){
   return splt;
 }
 
-
-
+/**
+* Calls mmap to allocate the arena. Called once...
+*/
 struct head *new(){
   if(arena != NULL){
     printf("one arena already allocated \n");
@@ -108,6 +113,9 @@ struct head *new(){
   return new;
 }
 
+/**
+* Detachs the block from the flist.
+*/
 void detach(struct head *block){
   if(block->next != NULL){
     block->next->prev = block->prev;
@@ -124,6 +132,9 @@ void detach(struct head *block){
   }
 }
 
+/**
+* Inserts the block to the beginning of flist.
+*/
 void insert(struct head *block){
   block->next = flist;
   block->prev = NULL;
@@ -133,6 +144,10 @@ void insert(struct head *block){
   flist = block;
 }
 
+/**
+* Adjust the request so it is bigger than MIN (8)
+* and also a multiple of 8.
+*/
 int adjust(int request){
   int min = MIN(request);
   int rem = min % ALIGN;
@@ -142,12 +157,16 @@ int adjust(int request){
   return min + ALIGN - rem;
 }
 
+/**
+* Tries to find a block of the given size
+* and if found check if it is possible to split.
+*/
 struct head *find(int size){
   struct head *next = flist;
   while(next != NULL){
     if(next->size >= size){
       detach(next);
-      if(next->size >= (HEAD + MIN(0) + size)){ //if able to split, split
+      if(next->size >= LIMIT(size)){//(HEAD + MIN(0) + size)){ //if able to split
         struct head *block = split(next, size);
         struct head *bef = before(block);
         insert(bef);
@@ -168,6 +187,9 @@ struct head *find(int size){
   return NULL; //no block found
 }
 
+/**
+* Merge with detach and then insert (first task).
+*/
 struct head *merge(struct head *block){
   struct head *aft = after(block);
   if(block->bfree){
@@ -188,7 +210,10 @@ struct head *merge(struct head *block){
   return block;
 }
 
-/* flist might not be ordered now :( )*/
+/**
+* Merges the block if possible without detach & insert
+* to flist.
+*/
 struct head *merge_no_detach(struct head *block){
   struct head *aft = after(block);
 
@@ -238,6 +263,9 @@ struct head *merge_no_detach(struct head *block){
   return block;
 }
 
+/**
+* Tries to palloc memory of the given size.
+*/
 void *palloc(size_t request){
   if(request <= 0){
     return NULL;
@@ -251,15 +279,19 @@ void *palloc(size_t request){
   }
 }
 
+/**
+* Prees the given memory block.
+*/
 void pree(void *memory){
   if(memory != NULL){
     struct head *block = MAGIC(memory);//(struct head*)((char *) memory - HEAD);
     block = merge_no_detach(block);//merge(block);
 
     //sink/heap??? change insert also, split will be fixed:)
+    //or sink for split?
 
     if(block == NULL){
-      //merged into flist already
+      //merged into flist already, no need to do more...
     } else {
       block->free = TRUE;
       struct head *aft = after(block);
@@ -267,6 +299,7 @@ void pree(void *memory){
       insert(block);
     }
 
+    //For the first merge...
     /*
     struct head *aft = after(block);
     block->free = TRUE;
@@ -276,13 +309,14 @@ void pree(void *memory){
   }
 }
 
+/**
+* Check that everything is OK
+*/
 void sanity(){
   struct head *next = flist;
   struct head *prev = next->prev;
-  //printf("%d\n", next->prev->size);
-  // printf("%d\n", next->size);
-  //printf("%d\n", next->next->size);
-
+  uint16_t sizeOfFlist = 0;
+  uint16_t sizeOfFreeArena = 0;
 
   printf("Checking flist...\n");
   while(next != NULL){
@@ -292,6 +326,9 @@ void sanity(){
       exit(1);
     }
     int size = next->size;
+    /* add size of flist for later */
+    sizeOfFlist += size;
+
     if(size < MIN(0)){
       printf("There's a chunk in flist that is less than MIN bytes in size!\n");
       printf("Terminating sanity...\n");
@@ -339,7 +376,10 @@ void sanity(){
       printf("Terminating sanity...\n");
       exit(1);
     }
-
+    /* add size if free block for later */
+    if(next->free == TRUE){
+      sizeOfFreeArena += next->size;
+    }
     /* add size to counter */
     count += HEAD + next->size;
     //printf("%d\t%d\n", next->size, next->free);
@@ -356,10 +396,17 @@ void sanity(){
   }
   printf("arena OK!\n");
 
+  printf("Comparing size of free blocks in arena with size of flist...\n");
+  if(sizeOfFlist != sizeOfFreeArena){
+    printf("Size not the same!\n");
+    printf("Terminating sanity...\n");
+    exit(1);
+  }
+  printf("Size match OK!\n");
   printf("Sanity passed!\n");
 }
 
-void bench1(int bufferSize){
+void printCountLengthOfFlist(int bufferSize){
   int count = 0;
   struct head *next = flist;
   while(next != NULL){
@@ -370,7 +417,7 @@ void bench1(int bufferSize){
   //printf("Size: %d\n", count);
 }
 
-void bench11(int buffSize){
+void printSizeDistributionOfFlist(int buffSize){
   struct head *next = flist;
   int count = 0;
   while(next != NULL){
