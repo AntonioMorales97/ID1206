@@ -126,6 +126,9 @@ void insert(struct head *block){
   flist = block;
 }
 
+/**
+* Insert alá insertion sort
+*/
 void insert_order(struct head *block){
   struct head *ptr = flist;
   if(ptr == NULL){
@@ -288,7 +291,7 @@ struct head *merge_no_detach(struct head *block){
       aft->bsize = block->size;
       aft->bfree = block->free;
     }
-    float_up(block);
+    float_up(block); // keep flist ordered
     return NULL;
   }
   //only block after is free
@@ -311,7 +314,7 @@ struct head *merge_no_detach(struct head *block){
     aft = after(block);
     aft->bsize = block->size;
     aft->bfree = block->free;
-    float_up(block);
+    float_up(block); // keep flist ordered
     return NULL;
   }
 
@@ -330,7 +333,7 @@ void *palloc(size_t request){
   if(taken == NULL){
     return NULL;
   } else {
-    return HIDE(taken);//(struct head*)((char *) taken + HEAD);
+    return HIDE(taken);
   }
 }
 
@@ -342,7 +345,19 @@ void pree(void *memory){
     struct head *block = MAGIC(memory);
     block = merge_no_detach(block);//merge(block);
 
+    // Uncomment this and comment rest below to
+    // just only insert...
+    /*
+    struct head *aft = after(block);
+    block->free = TRUE;
+    aft->bfree = TRUE;
+    insert(block);
+    */
+
     //maybe add sink function when splitting? ;)
+
+    // Uncomment this and comment rest below to
+    // merge without "detach" (insert rly)
 
     if(block == NULL){
       //merged into flist already, no need to do more...
@@ -350,10 +365,11 @@ void pree(void *memory){
       block->free = TRUE;
       struct head *aft = after(block);
       aft->bfree = TRUE;
-      insert_order(block);//insert(block); //
+      insert_order(block);//insert(block);
     }
 
-    //For the first merge...
+
+    // Uncomment this for merge with always detach & insert
     /*
     struct head *aft = after(block);
     block->free = TRUE;
@@ -398,11 +414,12 @@ void sanity(){
       printf("Terminating sanity...\n");
       exit(1);
     }
-    printf("%d\t%d\n", next->size, next->free);
+    //printf("%d\t%d\n", next->size, next->free);
     prev = next;
     next = next->next;
   }
 
+  // Comment this if order does not matter
   printf("Checking flist order...\n");
   next = flist;
   prev = next;
@@ -475,15 +492,14 @@ void sanity(){
   printf("Sanity passed!\n");
 }
 
-void printCountLengthOfFlist(int bufferSize){
+void printCountLengthOfFlist(int numOfAllocs){
   int count = 0;
   struct head *next = flist;
   while(next != NULL){
     count++;
     next = next->next;
   }
-  printf("%d\t%d\n", bufferSize, count);
-  //printf("Size: %d\n", count);
+  printf("%d\t%d\n", numOfAllocs, count);
 }
 
 void printSizeDistributionOfFlist(int buffSize){
@@ -494,6 +510,20 @@ void printSizeDistributionOfFlist(int buffSize){
     next = next->next;
     count++;
   }
+}
+
+void printAverageSizeDistributionOfFlist(){
+  struct head *next = flist;
+  int sum = 0;
+  int length = 0;
+  while(next != NULL){
+    length++;
+    sum+=next->size;
+    next = next->next;
+  }
+
+  double average = (double) sum / length;
+  printf("%f\t%d\n", average, length);
 }
 
 
