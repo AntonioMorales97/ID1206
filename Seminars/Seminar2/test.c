@@ -88,6 +88,16 @@ void testSanity(){
   terminate();
 }
 
+void simpleTest(){
+  init();
+  int *mem = palloc(80);
+  int *mom = palloc(1000);
+  pree(mem);
+  pree(mom);
+  sanity();
+  terminate();
+}
+
 int main(int argc, char const *argv[]){
   if(argc < 4){
     printf("Please enter:\tBuffer size\tLoops\tMax size of request\n");
@@ -99,7 +109,8 @@ int main(int argc, char const *argv[]){
   srand(time(0));
   //evalFlistLength();
   //evalFlistDistr();
-  evalTimePerformance();
-  //testSanity();
+  //evalTimePerformance();
+  testSanity();
+  //simpleTest();
   return 0;
 }
