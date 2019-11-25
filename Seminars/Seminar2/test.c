@@ -102,9 +102,9 @@ int main(int argc, char const *argv[]){
   int allocs = atoi(argv[1]);
   srand(time(0));
   //evalFlistLength(allocs);
-  evalFlistDistr(allocs);
+  //evalFlistDistr(allocs);
   //evalTimePerformance(allocs);
-  //testSanity();
+  testSanity();
   //simpleTest();
   return 0;
 }

@@ -139,7 +139,7 @@ void insert_order(struct head *block){
   }
   struct head *prevPtr = ptr->prev;
   while(ptr != NULL){
-    if(block->size <= ptr->size){
+    if(block->size <= ptr->size){ //>= for worst fit
       if(prevPtr != NULL){
         prevPtr->next = block;
       }
@@ -206,7 +206,7 @@ struct head *find(int size){
 
 /**
 * Called when a block is merged in flist to set it in its right position,
-* i.e float up probably.
+* i.e float up probably - for best fit.
 */
 void float_up(struct head *block){
   struct head *next = block->next;
@@ -241,6 +241,43 @@ void float_up(struct head *block){
   block->next = NULL;
   nextPrev->next = block;
   block->prev = nextPrev;
+}
+
+/**
+* Called when a block is merged in flist to set it in its right position,
+* i.e sink down for worst fit - probably.
+*/
+void sink_down(struct head *block){
+  struct head *prev = block->prev;
+  if(prev == NULL){
+    return;
+  }
+  if(block->size <= prev->size){ //remove?
+    return;
+  }
+
+  /*float is needed*/
+
+  detach(block);
+
+  struct head *prevNext = prev->next;
+  while((prev != NULL)){
+    if(block->size <= prev->size){
+      if(prevNext != NULL){
+        prevNext->prev = block;
+      }
+      prev->next = block;
+      block->next = prevNext;
+      block->prev = prev;
+      return;
+    }
+    prevNext = prev;
+    prev = prev->prev;
+  }
+  block->next = prevNext;
+  prevNext->prev = block;
+  block->prev = NULL;
+  flist = block;
 }
 
 /**
@@ -291,7 +328,7 @@ struct head *merge_no_detach(struct head *block){
       aft->bsize = block->size;
       aft->bfree = block->free;
     }
-    float_up(block); // keep flist ordered
+    float_up(block); // keep flist ordered, use sink_down for worst fit
     return NULL;
   }
   //only block after is free
@@ -314,7 +351,7 @@ struct head *merge_no_detach(struct head *block){
     aft = after(block);
     aft->bsize = block->size;
     aft->bfree = block->free;
-    float_up(block); // keep flist ordered
+    float_up(block); // keep flist ordered, use sink_down for worst fit
     return NULL;
   }
 
@@ -424,7 +461,7 @@ void sanity(){
   next = flist;
   prev = next;
   while(next != NULL){
-    if(prev->size > next->size){
+    if(prev->size > next->size){ //Worst-fit: <
       printf("Wrong order in flist: prev is bigger than next!\n");
       printf("prev: %d\tnext: %d\n", prev->size, next->size);
       printf("Terminating sanity\n");
