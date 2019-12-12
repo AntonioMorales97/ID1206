@@ -134,23 +134,25 @@ void green_thread() {
 
     /* Place waiting (joining) thread in ready queue */
     if (this->join != NULL) {
-        sigprocmask(SIG_BLOCK, &block, NULL); //test1
+        sigprocmask(SIG_BLOCK, &block, NULL);
         enqueue(&ready_queue, this->join);
-        sigprocmask(SIG_UNBLOCK, &block, NULL); //test1
+        sigprocmask(SIG_UNBLOCK, &block, NULL);
     }
 
     /* Free allocated memory structures. See malloc() in green_create */
-    free(this->context->uc_stack.ss_sp);
-    free(this->context);
+    /* How does this work? Since we use the stack AND deallocate it... */
+    /* LUCKY, should be in green_join */
+    //free(this->context->uc_stack.ss_sp);
+    //free(this->context);
 
     /* We are done, i.e a zombie */
     this->zombie = TRUE;
 
     /* Find the next thread to run. This is where the thread will end. */
-    sigprocmask(SIG_BLOCK, &block, NULL); //test1
+    sigprocmask(SIG_BLOCK, &block, NULL);
     green_t *next = dequeue(&ready_queue);
     running = next;
-    sigprocmask(SIG_UNBLOCK, &block, NULL); //test1
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
     setcontext(next->context);
 }
 
@@ -186,7 +188,6 @@ int green_join(green_t *thread) {
       return 0;
     }
 
-
     green_t *susp = running;
     /* Add as joining thread */
     thread->join = susp;
@@ -195,6 +196,10 @@ int green_join(green_t *thread) {
     running = next;
     sigprocmask(SIG_UNBLOCK, &block, NULL);
     swapcontext(susp->context, next->context);
+
+    free(thread->context->uc_stack.ss_sp);
+    free(thread->context);
+    thread->context = NULL;
     return 0;
 }
 
